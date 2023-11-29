@@ -1,5 +1,5 @@
 # Decoders
-String Decoder is a utility library for decoding various encoded string formats. It includes auto-detection of encoding types and decoding methods for Base64, URL, HTML, Unicode, and more.
+String Decoder is a utility library for decoding various encoded string formats. It includes auto-detection of encoding types and decoding methods for Base64, URL, HTML, Unicode.
 
 #Using 
 
