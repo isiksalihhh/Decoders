@@ -1,25 +1,23 @@
-﻿using System.Text;
+﻿using System;
+using System.Text;
 using System.Text.RegularExpressions;
 using System.Web;
+
 public class StringProcessor
 {
-	private readonly AutoDetector _autoDetector;
-	private readonly WhichEncoded _whichEncoded;
 	private readonly DecoderClass _decoderClass;
 
 	public StringProcessor()
 	{
-		_autoDetector = new AutoDetector();
-		_whichEncoded = new WhichEncoded();
 		_decoderClass = new DecoderClass();
 	}
 
 	public void ProcessString(string input)
 	{
-		if (_autoDetector.IsEncoded(input, out var encodingType))
+		if (TryDecode(input, out var decoded, out var encodingType))
 		{
 			Console.WriteLine($"The string is encoded as {encodingType}.");
-			DecodeAndPrint(input, encodingType);
+			Console.WriteLine(decoded);
 		}
 		else
 		{
@@ -27,119 +25,95 @@ public class StringProcessor
 		}
 	}
 
-	private void DecodeAndPrint(string input, string encodingType)
+	private bool TryDecode(string input, out string decoded, out string encodingType)
 	{
-		switch (encodingType)
-		{
-			case "Base64":
-				Console.WriteLine(_decoderClass.Base64Decoder(input));
-				break;
-			case "URL":
-				Console.WriteLine(_decoderClass.URLDecoder(input));
-				break;
-			case "HTML":
-				Console.WriteLine(_decoderClass.HTMLDecoder(input));
-				break;
-			case "Unicode":
-				Console.WriteLine(_decoderClass.UnicodeDecoder(input));
-				break;
-		}
-	}
-}
-
-public class AutoDetector
-{
-	private readonly WhichEncoded _whichEncoded;
-
-	public AutoDetector()
-	{
-		_whichEncoded= new WhichEncoded();
-	}
-	public bool IsEncoded(string input, out string encodingType)
-	{
+		decoded = null;
 		encodingType = null;
-		if (_whichEncoded.IsBase64(input))
+
+		if (TryDecodeBase64(input, out decoded))
 		{
 			encodingType = "Base64";
 			return true;
 		}
-		if (_whichEncoded.IsUrlEncoded(input))
+
+		if (TryDecodeUrl(input, out decoded))
 		{
 			encodingType = "URL";
 			return true;
 		}
-		if (_whichEncoded.IsHtmlEncoded(input))
+
+		if (TryDecodeHtml(input, out decoded))
 		{
 			encodingType = "HTML";
 			return true;
 		}
-		if (_whichEncoded.IsUnicodeEncoded(input))
+
+		if (TryDecodeUnicode(input, out decoded))
 		{
 			encodingType = "Unicode";
 			return true;
 		}
+
 		return false;
 	}
-}
 
-public class WhichEncoded
-{
-	public bool IsBase64(string input)
+	private bool TryDecodeBase64(string input, out string decoded)
 	{
 		try
 		{
-			Convert.FromBase64String(input);
+			decoded = _decoderClass.Base64Decoder(input);
 			return true;
 		}
 		catch (FormatException)
 		{
+			decoded = null;
 			return false;
 		}
 	}
 
-	public bool IsUrlEncoded(string input)
+	private bool TryDecodeUrl(string input, out string decoded)
 	{
-		return input.Contains("%");
+		if (input.Contains("%"))
+		{
+			decoded = _decoderClass.URLDecoder(input);
+			return true;
+		}
+		decoded = null;
+		return false;
 	}
 
-	public bool IsHtmlEncoded(string input)
+	private bool TryDecodeHtml(string input, out string decoded)
 	{
-		return input.Contains("&lt;") || input.Contains("&gt;");
+		if (input.Contains("&lt;") || input.Contains("&gt;"))
+		{
+			decoded = _decoderClass.HTMLDecoder(input);
+			return true;
+		}
+		decoded = null;
+		return false;
 	}
 
-	public bool IsUnicodeEncoded(string input)
+	private bool TryDecodeUnicode(string input, out string decoded)
 	{
-		return input.Contains("\\u");
+		if (input.Contains("\\u"))
+		{
+			decoded = _decoderClass.UnicodeDecoder(input);
+			return true;
+		}
+		decoded = null;
+		return false;
 	}
 }
 
 public class DecoderClass
 {
-	public string Base64Decoder(string input)
-	{
-		byte[] data = Convert.FromBase64String(input);
-		return Encoding.UTF8.GetString(data);
-	}
+	public string Base64Decoder(string input) => Encoding.UTF8.GetString(Convert.FromBase64String(input));
 
-	public string URLDecoder(string input)
-	{
-		return Uri.UnescapeDataString(input);
-	}
+	public string URLDecoder(string input) => Uri.UnescapeDataString(input);
 
-	public string URLPathDecoder(string input)
-	{
-		return Uri.UnescapeDataString(input);
-	}
+	public string HTMLDecoder(string input) => HttpUtility.HtmlDecode(input);
 
-	public string HTMLDecoder(string input)
-	{
-		return HttpUtility.HtmlDecode(input);
-	}
-
-	public string UnicodeDecoder(string input)
-	{
-		return Regex.Unescape(input);
-	}
+	public string UnicodeDecoder(string input) => Regex.Unescape(input);
 }
 
 class Program
@@ -149,14 +123,12 @@ class Program
 		string base64EncodedString = "SGVsbG8gV29ybGQh";
 		string urlEncodedString = "Hello%20World%21";
 		string htmlEncodedString = "Hello&amp;World&lt;script&gt;alert('Hello')&lt;/script&gt;";
-		string urlPathEncodedString = "Hello%2FWorld%2F";
 		string unicodeEncodedString = "\\u0048\\u0065\\u006C\\u006C\\u006F";
 
 		StringProcessor stringProcessor = new StringProcessor();
 		stringProcessor.ProcessString(base64EncodedString);
 		stringProcessor.ProcessString(urlEncodedString);
 		stringProcessor.ProcessString(htmlEncodedString);
-		stringProcessor.ProcessString(urlPathEncodedString);
 		stringProcessor.ProcessString(unicodeEncodedString);
 	}
 }
