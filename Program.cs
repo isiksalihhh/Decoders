@@ -9,11 +9,11 @@ public static class StringProcessorExtensions
 	{
 		if (StringProcessor.TryDecode(input, out var decoded, out var encodingType))
 		{
-			return $"The string is encoded as {encodingType}.\n{decoded}";
+			return decoded;
 		}
 		else
 		{
-			return "The string is not encoded.";
+			return input;
 		}
 	}
 }
@@ -68,41 +68,41 @@ public class StringProcessor
 		}
 		catch (FormatException)
 		{
-			decoded = null;
+			decoded = input;
 			return false;
 		}
 	}
 
 	private static bool TryDecodeUrl(string input, out string decoded)
 	{
-		if (input.Contains("%"))
+		if (input.Contains("%") && !input.Contains("&lt;") && !input.Contains("&gt;") && !input.Contains("\\u"))
 		{
 			decoded = DecoderClass.URLDecoder(input);
 			return true;
 		}
-		decoded = null;
+		decoded = input;
 		return false;
 	}
 
 	private static bool TryDecodeHtml(string input, out string decoded)
 	{
-		if (input.Contains("&lt;") || input.Contains("&gt;"))
+		if ((input.Contains("&lt;") || input.Contains("&gt;")) && !input.Contains("%") && !input.Contains("\\u"))
 		{
 			decoded = DecoderClass.HTMLDecoder(input);
 			return true;
 		}
-		decoded = null;
+		decoded = input;
 		return false;
 	}
 
 	private static bool TryDecodeUnicode(string input, out string decoded)
 	{
-		if (input.Contains("\\u"))
+		if (input.Contains("\\u") && !input.Contains("%") && !input.Contains("&lt;") && !input.Contains("&gt;"))
 		{
 			decoded = DecoderClass.UnicodeDecoder(input);
 			return true;
 		}
-		decoded = null;
+		decoded = input;
 		return false;
 	}
 }
@@ -127,13 +127,16 @@ class Program
 		string htmlEncodedString = "Hello&amp;World&lt;script&gt;alert('Hello')&lt;/script&gt;";
 		string unicodeEncodedString = "\\u0048\\u0065\\u006C\\u006C\\u006F";
 
+		string forBug = "pt&gt;alert('Hello')&lt;/s5\\u006C\\u006C\\u006F";
 
 		var base64 = base64EncodedString.DecodeString();
 		var url = urlEncodedString.DecodeString();
 		var html = htmlEncodedString.DecodeString();
 		var unicode = unicodeEncodedString.DecodeString();
 
-		Console.WriteLine($"{base64}\n{url}\n{html}\n{unicode}");
+		var TryForBug = forBug.DecodeString();
+
+		Console.WriteLine($"{base64}\n{url}\n{html}\n{unicode}\n{TryForBug}");
 
 	}
 }
