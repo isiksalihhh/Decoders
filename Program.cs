@@ -3,6 +3,21 @@ using System.Text;
 using System.Text.RegularExpressions;
 using System.Web;
 
+public static class StringProcessorExtensions
+{
+	public static string DecodeString(this string input)
+	{
+		if (StringProcessor.TryDecode(input, out var decoded, out var encodingType))
+		{
+			return $"The string is encoded as {encodingType}.\n{decoded}";
+		}
+		else
+		{
+			return "The string is not encoded.";
+		}
+	}
+}
+
 public class StringProcessor
 {
 	private readonly DecoderClass _decoderClass;
@@ -12,20 +27,7 @@ public class StringProcessor
 		_decoderClass = new DecoderClass();
 	}
 
-	public void ProcessString(string input)
-	{
-		if (TryDecode(input, out var decoded, out var encodingType))
-		{
-			Console.WriteLine($"The string is encoded as {encodingType}.");
-			Console.WriteLine(decoded);
-		}
-		else
-		{
-			Console.WriteLine("The string is not encoded.");
-		}
-	}
-
-	private bool TryDecode(string input, out string decoded, out string encodingType)
+	internal static bool TryDecode(string input, out string decoded, out string encodingType)
 	{
 		decoded = null;
 		encodingType = null;
@@ -57,11 +59,11 @@ public class StringProcessor
 		return false;
 	}
 
-	private bool TryDecodeBase64(string input, out string decoded)
+	private static bool TryDecodeBase64(string input, out string decoded)
 	{
 		try
 		{
-			decoded = _decoderClass.Base64Decoder(input);
+			decoded = DecoderClass.Base64Decoder(input);
 			return true;
 		}
 		catch (FormatException)
@@ -71,33 +73,33 @@ public class StringProcessor
 		}
 	}
 
-	private bool TryDecodeUrl(string input, out string decoded)
+	private static bool TryDecodeUrl(string input, out string decoded)
 	{
 		if (input.Contains("%"))
 		{
-			decoded = _decoderClass.URLDecoder(input);
+			decoded = DecoderClass.URLDecoder(input);
 			return true;
 		}
 		decoded = null;
 		return false;
 	}
 
-	private bool TryDecodeHtml(string input, out string decoded)
+	private static bool TryDecodeHtml(string input, out string decoded)
 	{
 		if (input.Contains("&lt;") || input.Contains("&gt;"))
 		{
-			decoded = _decoderClass.HTMLDecoder(input);
+			decoded = DecoderClass.HTMLDecoder(input);
 			return true;
 		}
 		decoded = null;
 		return false;
 	}
 
-	private bool TryDecodeUnicode(string input, out string decoded)
+	private static bool TryDecodeUnicode(string input, out string decoded)
 	{
 		if (input.Contains("\\u"))
 		{
-			decoded = _decoderClass.UnicodeDecoder(input);
+			decoded = DecoderClass.UnicodeDecoder(input);
 			return true;
 		}
 		decoded = null;
@@ -107,13 +109,13 @@ public class StringProcessor
 
 public class DecoderClass
 {
-	public string Base64Decoder(string input) => Encoding.UTF8.GetString(Convert.FromBase64String(input));
+	internal static string Base64Decoder(string input) => Encoding.UTF8.GetString(Convert.FromBase64String(input));
 
-	public string URLDecoder(string input) => Uri.UnescapeDataString(input);
+	internal static string URLDecoder(string input) => Uri.UnescapeDataString(input);
 
-	public string HTMLDecoder(string input) => HttpUtility.HtmlDecode(input);
+	internal static string HTMLDecoder(string input) => HttpUtility.HtmlDecode(input);
 
-	public string UnicodeDecoder(string input) => Regex.Unescape(input);
+	internal static string UnicodeDecoder(string input) => Regex.Unescape(input);
 }
 
 class Program
@@ -125,10 +127,13 @@ class Program
 		string htmlEncodedString = "Hello&amp;World&lt;script&gt;alert('Hello')&lt;/script&gt;";
 		string unicodeEncodedString = "\\u0048\\u0065\\u006C\\u006C\\u006F";
 
-		StringProcessor stringProcessor = new StringProcessor();
-		stringProcessor.ProcessString(base64EncodedString);
-		stringProcessor.ProcessString(urlEncodedString);
-		stringProcessor.ProcessString(htmlEncodedString);
-		stringProcessor.ProcessString(unicodeEncodedString);
+
+		var base64 = base64EncodedString.DecodeString();
+		var url = urlEncodedString.DecodeString();
+		var html = htmlEncodedString.DecodeString();
+		var unicode = unicodeEncodedString.DecodeString();
+
+		Console.WriteLine($"{base64}\n{url}\n{html}\n{unicode}");
+
 	}
 }
